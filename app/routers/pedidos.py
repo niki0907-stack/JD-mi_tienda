@@ -98,3 +98,18 @@ def cancelar_pedido(pedido_id: int):
             cur.execute("UPDATE pedidos SET estado = 'cancelado' WHERE id = %s", (pedido_id,))
             
             return {'mensaje': f'Pedido {pedido_id} cancelado con éxito y stock devuelto', 'estado': 'cancelado'}       
+
+@router.get('/reportes/ventas-por-cliente')
+def ventas_por_cliente():
+    with conectar() as db:
+        with db.cursor() as cur:
+            cur.execute('''
+                SELECT c.id AS cliente_id, c.nombre AS cliente_nombre, 
+                       COUNT(p.id) AS total_pedidos, 
+                       COALESCE(SUM(p.total), 0) AS total_recaudado
+                FROM clientes c
+                LEFT JOIN pedidos p ON c.id = p.cliente_id AND p.estado != 'cancelado'
+                GROUP BY c.id, c.nombre
+                ORDER BY total_recaudado DESC
+            ''')
+            return cur.fetchall()
